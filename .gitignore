@@ -50,4 +50,4 @@ rsconnect/
 
 
 # Manual omit
-*.xslx
+utils/*.xslx
