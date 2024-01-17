@@ -1,0 +1,213 @@
+---
+title: "Map WC Data"
+subtitle: "Project STRETCH: Cohort 1 (July 2023)"
+author: "Dana K Briscoe"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    code_folding: none
+    df_print: paged
+    highlight: tango
+    number_sections: no
+    theme: flatly
+    toc: no
+    toc_float: true
+    toc_collapsed: true
+  pdf_document:
+    toc: yes
+    toc_depth: '2'
+---
+
+```{=html}
+<style>
+.main-container {
+    max-width: 1600px !important;
+    margin-left: 0;
+    margin-right: 1;
+}
+
+```
+
+
+```{r 01-setup, include=FALSE}
+knitr::opts_chunk$set(
+    echo = FALSE,
+    eval = TRUE,
+    message = FALSE,
+    warning = FALSE,
+    dpi = 300,
+    fig.align = "center"
+    )
+
+# See Options: knitr::opts_chunk$get()
+```
+
+```{r 01-load-libraries, message=FALSE}
+library(tidyverse)
+library(data.table)
+library(ggplot2)
+# library(plotly)
+
+library(leaflet)
+library(mapview)
+library(leafsync)
+library(leafgl)
+library(sf)
+
+# library(kableExtra)
+library(knitr)
+
+library(sp)
+library(proj4)
+
+library(htmlwidgets)
+
+```
+
+```{r 01-source-helper-funcs}
+source('../utils/map_wc_helper_functions.R')
+```
+
+```{r 01-load-cohort-1}
+source('../R/01_prep_wc_data.R')
+
+```
+
+```{r 01-rename dfs}
+raw_df <- raw_data_cohort_1_w_names
+daily_df <- daily_avg_data_cohort_1 
+
+# # make historic df consistent with cohort df(s)
+# hist_df <- historic_tags %>% wrangleHistDF()
+
+```
+
+```{r 01-set-plot-params}
+# wc color pal
+# wc_pal <- colorFactor(rainbow(n), unique(daily_df$id))
+
+## unique track info
+# ids = unique(daily_df$id) # prefer to use t names instead
+ids = unique(daily_df$turtle_name)
+
+t_names = unique(daily_df$turtle_name)
+t_nums = unique(daily_df$turtle_num)
+t_names_num <- c(str_c(t_nums, ' - ', t_names))
+
+n = length(ids)
+wc_pal <-  n |>
+  {\(x) colorFactor(rainbow(x), unique(daily_df$id))}()
+
+# base_pal <- makePal('honeydew', col=unique(test$id))
+
+```
+
+```{r 01-make-leaflet-basemap}
+
+# create basemap
+m <- leaflet( options = leafletOptions(preferCanvas = TRUE), width = 1200, height = 700) %>% addTiles() %>% 
+    fitBounds(-160, 20, -110, 50) %>%
+    addProviderTiles("Esri.WorldImagery", group = "ESRI World Imagery") %>%
+    addProviderTiles("Esri.WorldPhysical", group = "ESRI OpenStreetMap")
+
+m360 <- leaflet(options = leafletOptions(preferCanvas = TRUE), width = 900, height = 600) %>% addTiles() %>% 
+    fitBounds(make360(-160), 20, make360(-110), 50) %>%
+    addProviderTiles("Esri.WorldImagery", group = "ESRI World Imagery") %>%
+    addProviderTiles("Esri.WorldPhysical", group = "ESRI OpenStreetMap")
+
+```
+
+```{r 01-load-cclme-shp}
+# cclme_shp <- rgdal::readOGR(dsn = "~/Dropbox/RESEARCH/PROJECTS/NPAC_Turtles/thermal_ms_2018/data/cclme_shp/",
+#               layer = "lme",
+#               verbose = FALSE)
+# 
+# cclme_shp_180 <- spTransform(cclme_shp, CRS("+proj=longlat +datum=WGS84"))
+
+cclme_shp <- sf::st_read("~/Dropbox/RESEARCH/PROJECTS/NPAC_Turtles/thermal_ms_2018/data/cclme_shp/",
+              layer = "lme")
+cclme_shp <- st_as_sf(cclme_shp, wkt = "geom", crs = 4326)
+    st_set_crs(cclme_shp, 4326)
+    cclme_shp_180 = st_shift_longitude(cclme_shp)
+
+  
+```
+
+```{r 01-make-leaflet-basemap-w-cclme-tcms}
+
+# make functions to add polygon & rectangles
+polygonFunction <- function(map, polygon){
+  addPolygons(
+    map, data = polygon, 
+    opacity = 1.0, fillOpacity = 0.2,
+    stroke = FALSE, smoothFactor = 0.2, 
+    popup=paste("California Current Large Marine Ecosystem (CCLME) <br>"),
+    group = "CCLME",
+    # options = pathOptions(pane = "cclme"),
+    color = "gray"
+  )
+} 
+
+rectangleFunction <- function(map, 
+                              # lng1=make180(225), lat1=25, 
+                              # lng2=make180(243), lat2=35){
+                            lng1, lat1, lng2, lat2){
+
+    addRectangles(map,        
+        lng1=lng1, lat1=lat1, 
+        lng2=lng2, lat2=lat2,
+        opacity = 1.0, fillOpacity = 0.2,
+        popup=paste("Thermal Corridor Study Area <br>"),
+        group = "Thermal Corridor",
+            # options = pathOptions(pane = "tc"),
+        color = "white")
+}
+
+
+
+# plot up basemap with polys
+m_polys <- m %>%
+  polygonFunction(map=., polygon = cclme_shp) %>%
+
+  rectangleFunction(map=.,
+                  lng1=make180(225), lat1=25, lng2=make180(243), lat2=35) %>%
+    addLayersControl(overlayGroups = c("CCLME", "Thermal Corridor"))
+
+```
+
+```{r 01-map-indiv-cohort-1}
+map_indiv_cohort_1 <-
+    m_polys %>%
+    
+    addTrackLines(df=daily_df, cpal=wc_pal, .indiv=FALSE) %>%
+    addTrackLines(df=daily_df, cpal=wc_pal) %>%
+    
+    addMapTracks(df=daily_df, cpal=wc_pal, .indiv=TRUE, .addLines=TRUE, .addMarkers=TRUE) %>%
+    
+
+    addLayersControl(
+        baseGroups = c("ESRI World Imagery", "ESRI OpenStreetMap"),
+        overlayGroups = c("CCLME", "Thermal Corridor",
+            str_c("All Tracks (n=", daily_df$id %>% n_distinct(),")"),ids),
+        options = layersControlOptions(collapsed = TRUE)) %>%
+    hideGroup(ids)%>%
+    addMapInset()
+
+```
+
+```{r 01-display-output-leaflet-map}
+
+map_indiv_cohort_1
+
+```
+
+
+<!-- ```{r 01-save-map-cohor1-png} -->
+<!-- library(htmlwidgets) -->
+<!-- # saveWidget(map_indiv_cohort_1, "") -->
+
+<!-- map_indiv_cohort_1[["sizingPolicy"]][["defaultWidth"]] <- "150%" -->
+
+<!-- saveWidget(map_indiv_cohort_1, file = "~/Downloads/wc_tracks_map_tcms_cclme_16jan2024.html", selfcontained = FALSE) -->
+
+<!-- ``` -->
