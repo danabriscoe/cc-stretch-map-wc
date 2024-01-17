@@ -195,7 +195,7 @@ map_indiv_cohort_1 <-
 # htmltools::tagList(map_indiv_cohort_1)
 widgetframe::frameWidget(map_indiv_cohort_1, width = "100%")
 
-map_indiv_cohort_1
+# map_indiv_cohort_1
 
 ```
 
