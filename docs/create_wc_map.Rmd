@@ -128,6 +128,20 @@ cclme_shp <- st_as_sf(cclme_shp, wkt = "geom", crs = 4326)
   
 ```
 
+```{r 01-load-eez-shp}
+
+library(rgdal)
+library(spdplyr)
+
+eez_shps <- sf::st_read("~/Downloads/EEZ_land_union_v3_202003/EEZ_Land_v3_202030.shp",
+              layer = "EEZ_Land_v3_202030") 
+eez_shps <- st_as_sf(eez_shps, wkt = "geom", crs = 4326)
+    st_set_crs(cclme_shp, 4326)
+    eez_shps_180 = st_shift_longitude(eez_shps)
+
+```
+
+
 ```{r 01-make-leaflet-basemap-w-cclme-tcms}
 
 # make functions to add polygon & rectangles
@@ -142,6 +156,31 @@ polygonFunction <- function(map, polygon){
     color = "gray"
   )
 } 
+
+polygonFunction <- function(map, polygon, label, group, shp_col="gray"){
+  addPolygons(
+    map, data = polygon, 
+    opacity = 1.0, fillOpacity = 0.2,
+    stroke = FALSE, smoothFactor = 0.2, 
+    popup = label,
+    group = group,
+    # options = pathOptions(pane = "cclme"),
+    options = pathOptions(pane = "polygons"),
+    color = shp_col
+  )
+} 
+
+polylinesFunction <- function(map, polygon, label, group, shp_col="black"){
+ addPolylines(
+   map, data = polygon, 
+    opacity = 0.6,  
+    popup = label,
+    group = group,
+    weight = 1.5,
+    options = pathOptions(pane = "borders"),
+    color = shp_col
+ )
+}
 
 rectangleFunction <- function(map, 
                               # lng1=make180(225), lat1=25, 
@@ -161,12 +200,33 @@ rectangleFunction <- function(map,
 
 
 # plot up basemap with polys
-m_polys <- m %>%
-  polygonFunction(map=., polygon = cclme_shp) %>%
+m_polys <-
+  m %>%
+  # addMapPane("background_map", zIndex = 410) %>%  # Level 1: bottom
+  addMapPane("polygons", zIndex = 420) %>%        # Level 2: middle
+  addMapPane("borders", zIndex = 430) %>%          # Level 3: top
+  polylinesFunction(map=., polygon = eez_shps |> 
+                      filter(TERRITORY1 == "United States") |> 
+                      filter(UNION == "United States"),
+                  label = paste("USA EEZ <br>"),
+                  group = "USA EEZ",
+                  # zIndex = "USA EEZ",
+                  shp_col = "black") %>%
+    polylinesFunction(map=., polygon = eez_shps |> filter(TERRITORY1 == "Mexico"),
+                  label = paste("MEXICO EEZ <br>"),
+                  group = "MEXICO EEZ",
+                  # zIndex = "MEXICO EEZ",
+                  shp_col = "black") %>%
+     polygonFunction(map=., polygon = cclme_shp,
+                  label = paste("California Current Large Marine Ecosystem (CCLME) <br>"),
+                  group = "CCLME",
+                  # zType = "polygons",
+                  shp_col = "gray") %>%
 
   rectangleFunction(map=.,
                   lng1=make180(225), lat1=25, lng2=make180(243), lat2=35) %>%
-    addLayersControl(overlayGroups = c("CCLME", "Thermal Corridor"))
+  
+    addLayersControl(overlayGroups = c("CCLME", "USA EEZ", "MEXICO EEZ", "Thermal Corridor"))
 
 ```
 
@@ -182,10 +242,12 @@ map_indiv_cohort_1 <-
 
     addLayersControl(
         baseGroups = c("ESRI World Imagery", "ESRI OpenStreetMap"),
-        overlayGroups = c("CCLME", "Thermal Corridor",
+        overlayGroups = c("CCLME", "USA EEZ", "MEXICO EEZ", "Thermal Corridor",
             str_c("All Tracks (n=", daily_df$id %>% n_distinct(),")"),ids),
         options = layersControlOptions(collapsed = TRUE)) %>%
     hideGroup(ids)%>%
+    hideGroup("USA EEZ")%>%
+    hideGroup("MEXICO EEZ")%>%
     addMapInset()
 
 ```
