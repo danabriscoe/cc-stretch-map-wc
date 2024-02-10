@@ -251,8 +251,8 @@ m_polys <-
 map_indiv_cohort_1 <-
     m_polys %>%
     
-    addTrackLines(df=daily_df, cpal=wc_pal, .indiv=FALSE) %>%
-    addTrackLines(df=daily_df, cpal=wc_pal) %>%
+    addTrackLines_gl(df=daily_df, cpal=wc_pal, .indiv=FALSE) %>%
+    addTrackLines_gl(df=daily_df, cpal=wc_pal) %>%
     
     addMapTracks(df=daily_df, cpal=wc_pal, .indiv=TRUE, .addLines=TRUE, .addMarkers=TRUE) %>%
     
