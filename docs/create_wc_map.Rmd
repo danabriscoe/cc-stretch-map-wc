@@ -141,8 +141,14 @@ eez_shps <- st_as_sf(eez_shps, wkt = "geom", crs = 4326)
 
 ```
 
+```{r 01-tcms-bbox}
+# convert thermal corridor study area into sf poly
+tc_box <- rgeos::bbox2SP(n = 35, s = 25, w = make180(243), e = make180(225),
+                         proj4string = CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")) %>% st_as_sf()
 
-```{r 01-make-leaflet-basemap-w-cclme-tcms}
+```
+
+```{r 01-poly-funcs}
 
 # make functions to add polygon & rectangles
 polygonFunction <- function(map, polygon){
@@ -183,50 +189,61 @@ polylinesFunction <- function(map, polygon, label, group, shp_col="black"){
 }
 
 rectangleFunction <- function(map, 
-                              # lng1=make180(225), lat1=25, 
-                              # lng2=make180(243), lat2=35){
                             lng1, lat1, lng2, lat2){
 
-    addRectangles(map,        
-        lng1=lng1, lat1=lat1, 
-        lng2=lng2, lat2=lat2,
-        opacity = 1.0, fillOpacity = 0.2,
-        popup=paste("Thermal Corridor Study Area <br>"),
-        group = "Thermal Corridor",
-            # options = pathOptions(pane = "tc"),
-        color = "white")
+addRectangles(map,        
+    lng1=lng1, lat1=lat1, 
+    lng2=lng2, lat2=lat2,
+    opacity = 1.0, fillOpacity = 0.2,
+    popup=paste("Thermal Corridor Study Area <br>"),
+    group = "Thermal Corridor",
+    color = "white")
 }
 
 
 
+```
+
+
+
+```{r 01-make-leaflet-basemap-w-cclme-tcms}
+
 # plot up basemap with polys
 m_polys <-
   m %>%
-  # addMapPane("background_map", zIndex = 410) %>%  # Level 1: bottom
-  addMapPane("polygons", zIndex = 420) %>%        # Level 2: middle
-  addMapPane("borders", zIndex = 430) %>%          # Level 3: top
+  
+  # arrange layers from bottom to top
+  addMapPane("polygons", zIndex = 410) %>%       # Level 1: bottom
+  addMapPane("borders", zIndex = 420) %>%        # Level 2: middle
+  addMapPane("tracks", zIndex = 430) %>%         # Level 3: top
+  
+  # add eez usa
   polylinesFunction(map=., polygon = eez_shps |> 
                       filter(TERRITORY1 == "United States") |> 
                       filter(UNION == "United States"),
                   label = paste("USA EEZ <br>"),
                   group = "USA EEZ",
-                  # zIndex = "USA EEZ",
                   shp_col = "black") %>%
-    polylinesFunction(map=., polygon = eez_shps |> filter(TERRITORY1 == "Mexico"),
+  # add eez mx
+  polylinesFunction(map=., polygon = eez_shps |> filter(TERRITORY1 == "Mexico"),
                   label = paste("MEXICO EEZ <br>"),
                   group = "MEXICO EEZ",
-                  # zIndex = "MEXICO EEZ",
                   shp_col = "black") %>%
-     polygonFunction(map=., polygon = cclme_shp,
+  # add cclme
+  polygonFunction(map=., polygon = cclme_shp,
                   label = paste("California Current Large Marine Ecosystem (CCLME) <br>"),
                   group = "CCLME",
-                  # zType = "polygons",
                   shp_col = "gray") %>%
-
+  # add thermal corridor poly filled
+  polygonFunction(map=., polygon = tc_box,
+                    label = paste("Thermal Corridor <br>"),
+                    group = "Thermal Corridor",
+                    shp_col = "white") %>%
+  # add thermal corridor outline
   rectangleFunction(map=.,
                   lng1=make180(225), lat1=25, lng2=make180(243), lat2=35) %>%
   
-    addLayersControl(overlayGroups = c("CCLME", "USA EEZ", "MEXICO EEZ", "Thermal Corridor"))
+  addLayersControl(overlayGroups = c("CCLME", "USA EEZ", "MEXICO EEZ", "Thermal Corridor"))
 
 ```
 

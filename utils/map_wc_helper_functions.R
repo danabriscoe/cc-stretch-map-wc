@@ -136,6 +136,9 @@ addTrackLines <- function(m, df, cpal=wc_pal, .indiv=TRUE){
                        "<strong>", "ID: ", "</strong>", x),
                      
                      color = ~cpal(id),
+                     
+                     options = pathOptions(pane = "tracks"),
+                     
                      group = ifelse(.indiv==TRUE, x, 
                                     str_c("All Tracks (n=", daily_df$id %>% n_distinct(),")"))
                      # labelOptions = labelOptions(noHide = F,
