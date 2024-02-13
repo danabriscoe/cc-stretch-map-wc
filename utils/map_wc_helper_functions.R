@@ -149,6 +149,37 @@ addTrackLines <- function(m, df, cpal=wc_pal, .indiv=TRUE){
 } # end func
 
 
+## Repeat Above but use addGlPolylines for faster web/ui
+addTrackLines_gl <- function(m, df, cpal=wc_pal, .indiv=FALSE){
+  
+  # df_split <- split(df, df$id)
+  df_split <- split(df, df$turtle_name)
+  
+  names(df_split) %>%
+    purrr::walk( function(x) {
+      m <<- m %>%
+        leafgl::addGlPolylines(data=df_split[[x]] %>% makeSpatialLines(lon360=FALSE),
+                               
+                               popup=paste0(
+                                 "<strong>", "Name: "  , "</strong>", df_split[[x]]$turtle_name, "<br>",
+                                 "<strong>", "ID: ", "</strong>", x),
+                               
+                               color = ~cpal(id),
+                               
+                               
+                               options = pathOptions(pane = "tracks"),
+                               
+                               group = str_c("All Tracks (n=", daily_df$id %>% n_distinct(),")")
+                               # group = ifelse(.indiv==TRUE, x, 
+                               #                str_c("All Tracks (n=", daily_df$id %>% n_distinct(),")"))
+        )
+    })
+  return(m)
+} # end func
+
+
+
+
 # add all/indiv tracks to map as lines +/- circle markers
 addMapTracks <- function(m, df, cpal, .indiv=TRUE, .addLines=TRUE, .addMarkers=TRUE){
   # m = base leaflet map
