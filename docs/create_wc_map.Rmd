@@ -229,11 +229,18 @@ m_polys <-
                   label = paste("MEXICO EEZ <br>"),
                   group = "MEXICO EEZ",
                   shp_col = "black") %>%
-  # add cclme
+  # # add cclme poly filled
   polygonFunction(map=., polygon = cclme_shp,
                   label = paste("California Current Large Marine Ecosystem (CCLME) <br>"),
                   group = "CCLME",
                   shp_col = "gray") %>%
+  
+  #   # add cclme outline only
+  # polylinesFunction(map=., polygon = cclme_shp,
+  #                 label = paste("California Current Large Marine Ecosystem (CCLME) <br>"),
+  #                 group = "CCLME",
+  #                 shp_col = "gray") %>%
+  
   # add thermal corridor poly filled
   polygonFunction(map=., polygon = tc_box,
                     label = paste("Thermal Corridor <br>"),
