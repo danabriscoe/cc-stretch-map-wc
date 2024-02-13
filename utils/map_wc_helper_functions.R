@@ -161,13 +161,16 @@ addTrackLines_gl <- function(m, df, cpal=wc_pal, .indiv=FALSE){
         leafgl::addGlPolylines(data=df_split[[x]] %>% makeSpatialLines(lon360=FALSE),
                                
                                popup=paste0(
-                                 "<strong>", "Name: "  , "</strong>", df_split[[x]]$turtle_name, "<br>",
+                                 # "<strong>", "Name: "  , "</strong>", df_split[[x]]$turtle_name, "<br>",
+                                 "<strong>", "Name: "  , "</strong>", unique(df_split[[x]]$turtle_name), "<br>",
                                  "<strong>", "ID: ", "</strong>", x),
                                
                                color = ~cpal(id),
                                
                                
                                options = pathOptions(pane = "tracks"),
+                               
+                               opacity = 1,
                                
                                group = str_c("All Tracks (n=", daily_df$id %>% n_distinct(),")")
                                # group = ifelse(.indiv==TRUE, x, 
