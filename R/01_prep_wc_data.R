@@ -24,8 +24,8 @@ library(data.table)
 
 
 # ## Source functions ----
-source('../utils/map_wc_helper_functions.R')
-
+# source('../utils/map_wc_helper_functions.R')
+source(here::here("utils", "map_wc_helper_functions.R"))
 
 ## 1) Load Cohort Data ----
 wc_files <- list.files('~/Downloads/batch/', pattern = "All.csv", recursive=T, full.names=T) # change dir later
@@ -38,15 +38,7 @@ raw_data_cohort_1 <- load_wc_downloads(wc_files) %>%
 
 ## 2) Add turtle metadata ----
 # load metadata
-# # dir depends on rmd or r
-# tryCatch( { meta_files <- "../utils/2023_Turtle_Info.xlsx" }
-#           , warning = function(w) { print("Cannot load meta file (../)") })
-# 
-# tryCatch( { meta_files <- "./utils/2023_Turtle_Info.xlsx" }
-#           , warning = function(w) { print("Cannot load meta file (./)") })
-
-
-meta_files <- "../utils/2023_Turtle_Info.xlsx"
+meta_files <- here::here("utils", "2023_Turtle_Info.xlsx")
 meta_cohort_1 <- load_metadata_xls(meta_files)
 
 # merge dfs to align ID and Turtle Names
